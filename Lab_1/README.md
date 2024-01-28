@@ -1,17 +1,28 @@
-## UID: 123456789
+## UID: 505918229
 
 ## Pipe Up
-
-One sentence description
+A C program which mimics the pipe operator (|) used in shells, which pipes the output of one program as the input of another program.
 
 ## Building
-
-Explain briefly how to build your program
+1. Run `make`
+2. Run `./pipe arg_1 arg_2 ... arg_n`
 
 ## Running
+- Arguments must be programs without additional arguments or flags
+- Example arguments include ls, cat, wc, and sort
 
-Show an example run of your program, using at least two additional arguments, and what to expect
+Running `./pipe ls sort cat` should output the sorted contents of a directory in a sorted column
+
+Makefile
+pipe
+pipe.c
+pipe.o
+__pycache__
+README.md
+test_lab1.py
+
+## Testing
+python -m unittest
 
 ## Cleaning up
-
-Explain briefly how to clean up all binary files
+`make clean`
