@@ -5,7 +5,7 @@ A C program which mimics the pipe operator (|) used in shells, which pipes the o
 
 ## Building
 1. Run `make`
-2. Run `./pipe arg_1 arg_2 ... arg_n`
+2. Run `./pipe command_1 command_2 ... command_n`
 
 ## Running
 - Arguments must be programs without additional arguments or flags
