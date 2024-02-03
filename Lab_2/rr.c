@@ -153,6 +153,14 @@ init_processes (char const *filename)
   return (struct process_set) {nprocesses, process};
 }
 
+int compare_arrival_time(const void* a, const void* b) {
+    const struct process* processA = (const struct process*)a;
+    const struct process* processB = (const struct process*)b;
+    if (processA->arrival_time < processB->arrival_time) return -1;
+    if (processA->arrival_time > processB->arrival_time) return 1;
+    return 0;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -178,6 +186,9 @@ main (int argc, char *argv[])
   long total_response_time = 0;
 
   /* Your code here */
+
+  // Sort processes by arrival_time
+  qsort(ps.process, ps.nprocesses, sizeof(struct process), compare_arrival_time);
 
   // Append processes to the linked list
   for (int i = 0; i < ps.nprocesses; i++) {
