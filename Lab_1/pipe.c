@@ -7,6 +7,10 @@
 
 int main(int argc, char *argv[])
 {
+    if (argc == 1) {
+        exit(EINVAL);
+    }
+
 	int pipefd[2];
     int prev_fd = -1; // Transfers the output of one command to the input of another
 
@@ -15,14 +19,14 @@ int main(int argc, char *argv[])
         if (i < argc - 1) { 
             if (pipe(pipefd) == -1) {
                 perror("pipe");
-                exit(EXIT_FAILURE);
+                exit(1);
             }
         }
 
         int ret = fork();
         if (ret == -1) {
             perror("fork");
-            exit(EXIT_FAILURE);
+            exit(1);
         }
 
 		// Child process
