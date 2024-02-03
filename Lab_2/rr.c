@@ -15,7 +15,7 @@ struct process
   long pid;
   long arrival_time;
   long burst_time;
-  bool has_run = false;
+  bool has_run;
 
   TAILQ_ENTRY (process) pointers;
 
@@ -182,10 +182,12 @@ main (int argc, char *argv[])
 
   // Append processes to the linked list
   for (int i = 0; i < ps.nprocesses; i++) {
+    ps.process[i].has_run = false;
     TAILQ_INSERT_TAIL(&list, &ps.process[i], pointers);
   }
 
   struct process* currentElement;
+  int num_processes_run = 0;
 
   while (!TAILQ_EMPTY(&list)) {
     currentElement = TAILQ_FIRST(&list);
@@ -194,6 +196,9 @@ main (int argc, char *argv[])
     struct process* newElement = (struct process*)malloc(sizeof(struct process));
     if (newElement != NULL) { 
         long time_remaining = currentElement->burst_time - quantum_length;
+        if (!currentElement->has_run) {
+          total_response_time += num_processes_run * quantum_length;
+        }
         if (time_remaining > 0) {
           *newElement = *currentElement;
           newElement->burst_time = time_remaining;
@@ -204,9 +209,12 @@ main (int argc, char *argv[])
         fprintf(stderr, "Failed to allocate memory for new process.\n");
         exit(1); 
     }
-
+    num_processes_run += 1;
     TAILQ_REMOVE(&list, currentElement, pointers); 
   }
+
+  // Testing
+  printf ("Total response time: %ld\n", total_response_time);
 
 
   /* End of "Your code here" */

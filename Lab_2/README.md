@@ -1,7 +1,7 @@
 # You Spin Me Round Robin
 
-An implementation for round robin scheduling for a given workload and quantum
-length written in C
+A linked list implementation of round robin process scheduling using for a given workload and quantum
+length written. Returns the average wait and response times.
 
 ## Building
 
@@ -12,9 +12,9 @@ make
 ## Running
 
 ```shell
-./rr processes.txt num_processes
+./rr processes.txt quantum
 ```
-where `num_processes` is an integer which represents the number of processes to run
+where `quantum` is an integer which represents the quantum length
 
 ```shell
 ./rr processes.txt 3
