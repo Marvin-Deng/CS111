@@ -1,28 +1,32 @@
 # You Spin Me Round Robin
 
-TODO
+An implementation for round robin scheduling for a given workload and quantum
+length written in C
 
 ## Building
 
 ```shell
-TODO
+make
 ```
 
 ## Running
 
-cmd for running TODO
 ```shell
-TODO
+./rr processes .txt num_processes
 ```
+where `num_processes` is an integer which represents the number of processes to run
 
-results TODO
 ```shell
-TODO
-
+./rr processes .txt 3
+Average waiting time: 7.00
+Average response time: 2.75
 ```
 
 ## Cleaning up
 
 ```shell
-TODO
+make clean
 ```
+
+## Testing
+python -m unittest
