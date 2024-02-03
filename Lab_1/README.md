@@ -22,7 +22,7 @@ README.md
 test_lab1.py
 
 ## Testing
-python -m unittest
+`python -m unittest`
 
 ## Cleaning up
 `make clean`
