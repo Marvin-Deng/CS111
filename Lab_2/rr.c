@@ -16,10 +16,9 @@ struct process
   long arrival_time;
   long burst_time;
   bool has_run;
+  long last_run_time;
 
   TAILQ_ENTRY (process) pointers;
-
-  /* End of "Additional fields here" */
 };
 
 TAILQ_HEAD (process_list, process);
@@ -187,33 +186,43 @@ main (int argc, char *argv[])
   }
 
   struct process* currentElement;
-  int num_processes_run = 0;
+  int time_elapsed = 0;
 
   while (!TAILQ_EMPTY(&list)) {
     currentElement = TAILQ_FIRST(&list);
     printf("Element pid: %ld, Burst time: %ld\n", currentElement->pid, currentElement->burst_time);
 
-    struct process* newElement = (struct process*)malloc(sizeof(struct process));
-    if (newElement != NULL) { 
-        long time_remaining = currentElement->burst_time - quantum_length;
-        if (!currentElement->has_run) {
-          total_response_time += num_processes_run * quantum_length;
-        }
-        if (time_remaining > 0) {
-          *newElement = *currentElement;
-          newElement->burst_time = time_remaining;
-          newElement->has_run = true;
-          TAILQ_INSERT_TAIL(&list, newElement, pointers);
-        }
-    } else {
+    // Increase the wait time 
+    total_wait_time += time_elapsed - currentElement->last_run_time;
+
+    // Increase the total response time if the process hasn't run yet
+    if (!currentElement->has_run) {
+      total_response_time += time_elapsed;
+    }
+
+    // Execute the process
+    time_elapsed += quantum_length;
+
+    // If the process hasn't finished yet, append it to the end of the queue
+    long time_remaining = currentElement->burst_time - quantum_length;
+    if (time_remaining > 0) {
+      struct process* newElement = (struct process*)malloc(sizeof(struct process));
+      if (newElement != NULL) {
+        *newElement = *currentElement;
+        newElement->burst_time = time_remaining;
+        newElement->has_run = true;
+        newElement->last_run_time = time_elapsed;
+        TAILQ_INSERT_TAIL(&list, newElement, pointers);
+      } else {
         fprintf(stderr, "Failed to allocate memory for new process.\n");
         exit(1); 
-    }
-    num_processes_run += 1;
+      }
+    } 
     TAILQ_REMOVE(&list, currentElement, pointers); 
   }
 
   // Testing
+  printf ("Total wait time: %ld\n", total_wait_time);
   printf ("Total response time: %ld\n", total_response_time);
 
 
