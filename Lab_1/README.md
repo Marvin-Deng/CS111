@@ -1,5 +1,3 @@
-## UID: 505918229
-
 ## Pipe Up
 A C program which mimics the pipe operator (|) used in shells, which pipes the output of one program as the input of another program.
 
