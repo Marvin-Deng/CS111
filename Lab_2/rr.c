@@ -1,255 +1,268 @@
+#include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
-#include <stdckdint.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/mman.h>
 #include <sys/queue.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-/* A process table entry.  */
+typedef uint32_t u32;
+typedef int32_t i32;
+
 struct process
 {
-  long pid;
-  long arrival_time;
-  long burst_time;
-  bool has_run;
-  long last_run_time;
+  u32 pid;
+  u32 arrival_time;
+  u32 burst_time;
+  u32 total_time_run;
+  u32 index;
 
-  TAILQ_ENTRY (process) pointers;
+  TAILQ_ENTRY(process) pointers;
 };
 
-TAILQ_HEAD (process_list, process);
+TAILQ_HEAD(process_list, process);
 
-/* Skip past initial nondigits in *DATA, then scan an unsigned decimal
-   integer and return its value.  Do not scan past DATA_END.  Return
-   the integer’s value.  Report an error and exit if no integer is
-   found, or if the integer overflows.  */
-static long
-next_int (char const **data, char const *data_end)
+u32 next_int(const char **data, const char *data_end)
 {
-  long current = 0;
-  bool int_start = false;
-  char const *d;
+  u32 current = 0;
+  bool started = false;
+  while (*data != data_end)
+  {
+    char c = **data;
 
-  for (d = *data; d < data_end; d++)
+    if (c < 0x30 || c > 0x39)
     {
-      char c = *d;
-      if ('0' <= c && c <= '9')
-	{
-	  int_start = true;
-	  if (ckd_mul (&current, current, 10)
-	      || ckd_add (&current, current, c - '0'))
-	    {
-	      fprintf (stderr, "integer overflow\n");
-	      exit (1);
-	    }
-	}
-      else if (int_start)
-	break;
+      if (started)
+      {
+        return current;
+      }
+    }
+    else
+    {
+      if (!started)
+      {
+        current = (c - 0x30);
+        started = true;
+      }
+      else
+      {
+        current *= 10;
+        current += (c - 0x30);
+      }
     }
 
-  if (!int_start)
-    {
-      fprintf (stderr, "missing integer\n");
-      exit (1);
-    }
+    ++(*data);
+  }
 
-  *data = d;
+  printf("Reached end of file while looking for another integer\n");
+  exit(EINVAL);
+}
+
+u32 next_int_from_c_str(const char *data)
+{
+  char c;
+  u32 i = 0;
+  u32 current = 0;
+  bool started = false;
+  while ((c = data[i++]))
+  {
+    if (c < 0x30 || c > 0x39)
+    {
+      exit(EINVAL);
+    }
+    if (!started)
+    {
+      current = (c - 0x30);
+      started = true;
+    }
+    else
+    {
+      current *= 10;
+      current += (c - 0x30);
+    }
+  }
   return current;
 }
 
-/* Return the first unsigned decimal integer scanned from DATA.
-   Report an error and exit if no integer is found, or if it overflows.  */
-static long
-next_int_from_c_str (char const *data)
+void init_processes(const char *path, struct process **process_data, u32 *process_size)
 {
-  return next_int (&data, strchr (data, 0));
-}
-
-/* A vector of processes of length NPROCESSES; the vector consists of
-   PROCESS[0], ..., PROCESS[NPROCESSES - 1].  */
-struct process_set
-{
-  long nprocesses;
-  struct process *process;
-};
-
-/* Return a vector of processes scanned from the file named FILENAME.
-   Report an error and exit on failure.  */
-static struct process_set
-init_processes (char const *filename)
-{
-  int fd = open (filename, O_RDONLY);
-  if (fd < 0)
-    {
-      perror ("open");
-      exit (1);
-    }
+  int fd = open(path, O_RDONLY);
+  if (fd == -1)
+  {
+    int err = errno;
+    perror("open");
+    exit(err);
+  }
 
   struct stat st;
-  if (fstat (fd, &st) < 0)
-    {
-      perror ("stat");
-      exit (1);
-    }
+  if (fstat(fd, &st) == -1)
+  {
+    int err = errno;
+    perror("stat");
+    exit(err);
+  }
 
-  size_t size;
-  if (ckd_add (&size, st.st_size, 0))
-    {
-      fprintf (stderr, "%s: file size out of range\n", filename);
-      exit (1);
-    }
-
-  char *data_start = mmap (NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+  u32 size = st.st_size;
+  const char *data_start = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
   if (data_start == MAP_FAILED)
-    {
-      perror ("mmap");
-      exit (1);
-    }
+  {
+    int err = errno;
+    perror("mmap");
+    exit(err);
+  }
 
-  char const *data_end = data_start + size;
-  char const *data = data_start;
+  const char *data_end = data_start + size;
+  const char *data = data_start;
 
-  long nprocesses = next_int (&data, data_end);
-  if (nprocesses <= 0)
-    {
-      fprintf (stderr, "no processes\n");
-      exit (1);
-    }
+  *process_size = next_int(&data, data_end);
 
-  struct process *process = calloc (sizeof *process, nprocesses);
-  if (!process)
-    {
-      perror ("calloc");
-      exit (1);
-    }
+  *process_data = calloc(sizeof(struct process), *process_size);
+  if (*process_data == NULL)
+  {
+    int err = errno;
+    perror("calloc");
+    exit(err);
+  }
 
-  for (long i = 0; i < nprocesses; i++)
-    {
-      process[i].pid = next_int (&data, data_end);
-      process[i].arrival_time = next_int (&data, data_end);
-      process[i].burst_time = next_int (&data, data_end);
-      if (process[i].burst_time == 0)
-	{
-	  fprintf (stderr, "process %ld has zero burst time\n",
-		   process[i].pid);
-	  exit (1);
-	}
-    }
+  for (u32 i = 0; i < *process_size; ++i)
+  {
+    (*process_data)[i].pid = next_int(&data, data_end);
+    (*process_data)[i].arrival_time = next_int(&data, data_end);
+    (*process_data)[i].burst_time = next_int(&data, data_end);
+  }
 
-  if (munmap (data_start, size) < 0)
-    {
-      perror ("munmap");
-      exit (1);
-    }
-  if (close (fd) < 0)
-    {
-      perror ("close");
-      exit (1);
-    }
-  return (struct process_set) {nprocesses, process};
+  munmap((void *)data, size);
+  close(fd);
 }
 
 int compare_arrival_time(const void* a, const void* b) {
-    const struct process* processA = (const struct process*)a;
-    const struct process* processB = (const struct process*)b;
-    if (processA->arrival_time < processB->arrival_time) return -1;
-    if (processA->arrival_time > processB->arrival_time) return 1;
-    return 0;
+  const struct process* processA = (const struct process*)a;
+  const struct process* processB = (const struct process*)b;
+
+  if (processA->arrival_time < processB->arrival_time) return -1;
+  if (processA->arrival_time > processB->arrival_time) return 1;
+
+  if (processA->index < processB->index) return -1;
+  if (processA->index > processB->index) return 1;
+
+  return 0;
 }
 
-int
-main (int argc, char *argv[])
+void add_processes_to_ready_queue(struct process_list *not_processed, struct process_list *ready_queue, int time_elapsed) {
+  if (!TAILQ_EMPTY(not_processed)) {
+      struct process *next_to_process = TAILQ_FIRST(not_processed);
+      while (next_to_process != NULL && next_to_process->arrival_time == time_elapsed) {
+          struct process *new_process = (struct process*)malloc(sizeof(struct process));
+          *new_process = *next_to_process;
+
+          TAILQ_REMOVE(not_processed, next_to_process, pointers);
+          TAILQ_INSERT_TAIL(ready_queue, new_process, pointers);
+          next_to_process = TAILQ_FIRST(not_processed);
+          // printf("Added %u to ready queue\n", new_process->pid);
+      }
+  }
+}
+
+int main(int argc, char *argv[])
 {
   if (argc != 3)
-    {
-      fprintf (stderr, "%s: usage: %s file quantum\n", argv[0], argv[0]);
-      return 1;
-    }
+  {
+    return EINVAL;
+  }
+  struct process *data;
+  u32 size;
+  init_processes(argv[1], &data, &size);
 
-  struct process_set ps = init_processes (argv[1]);
-  long quantum_length = (strcmp (argv[2], "median") == 0 ? -1
-			 : next_int_from_c_str (argv[2]));
-  if (quantum_length == 0)
-    {
-      fprintf (stderr, "%s: zero quantum length\n", argv[0]);
-      return 1;
-    }
+  u32 quantum_length = next_int_from_c_str(argv[2]);
 
   struct process_list list;
-  TAILQ_INIT (&list);
+  TAILQ_INIT(&list);
 
-  long total_wait_time = 0;
-  long total_response_time = 0;
+  u32 total_waiting_time = 0;
+  u32 total_response_time = 0;
 
-  /* Your code here */
-
-  // Sort processes by arrival_time
-  qsort(ps.process, ps.nprocesses, sizeof(struct process), compare_arrival_time);
-
-  // Append processes to the linked list
-  for (int i = 0; i < ps.nprocesses; i++) {
-    ps.process[i].has_run = false;
-    TAILQ_INSERT_TAIL(&list, &ps.process[i], pointers);
+  // Record the index of each process
+  for (int i = 0; i < size; i++) {
+    data[i].index = i;
   }
 
-  struct process* currentElement;
-  int time_elapsed = 0;
+  qsort(data, size, sizeof(struct process), compare_arrival_time);
 
-  while (!TAILQ_EMPTY(&list)) {
-    currentElement = TAILQ_FIRST(&list);
-    printf("Element pid: %ld, Burst time: %ld\n", currentElement->pid, currentElement->burst_time);
+  struct process_list not_processed;
+  TAILQ_INIT (&not_processed);
 
-    // Increase the wait time 
-    total_wait_time += time_elapsed - currentElement->last_run_time;
+  // Append processes to the not processed queue
+  for (int i = 0; i < size; i++) {
+    TAILQ_INSERT_TAIL(&not_processed, &data[i], pointers);
+    printf("PID: %u, Arrival Time: %u, Index: %u\n", data[i].pid, data[i].arrival_time, data[i].index);
+  }
 
-    // Increase the total response time if the process hasn't run yet
-    if (!currentElement->has_run) {
-      total_response_time += time_elapsed;
-    }
+  struct process* current_element;
+  u32 time_elapsed = 0;
+  u32 time_run = 0;
 
-    // Execute the process
-    time_elapsed += quantum_length;
+  // Add any processes which arrive at time 0
+  add_processes_to_ready_queue(&not_processed, &list, time_elapsed);
 
-    // If the process hasn't finished yet, append it to the end of the queue
-    long time_remaining = currentElement->burst_time - quantum_length;
-    if (time_remaining > 0) {
-      struct process* newElement = (struct process*)malloc(sizeof(struct process));
-      if (newElement != NULL) {
-        *newElement = *currentElement;
-        newElement->burst_time = time_remaining;
-        newElement->has_run = true;
-        newElement->last_run_time = time_elapsed;
-        TAILQ_INSERT_TAIL(&list, newElement, pointers);
-      } else {
-        fprintf(stderr, "Failed to allocate memory for new process.\n");
-        exit(1); 
+  // Continue until processes have finished running
+  while (!TAILQ_EMPTY(&not_processed) || !TAILQ_EMPTY(&list)) {
+    // printf("Time Elapsed: %u\n", time_elapsed);
+
+    // If possible, run a ready process
+    if (!TAILQ_EMPTY(&list)) {
+      current_element = TAILQ_FIRST(&list);
+      // printf("Running process %u\n", current_element->pid);
+      
+      // Calculate response time
+      if (current_element->total_time_run == 0) {
+        total_response_time += time_elapsed - current_element->arrival_time;
+        // printf("Response time of %u: %u\n", current_element->pid, time_elapsed - current_element->arrival_time);
       }
-    } 
-    TAILQ_REMOVE(&list, currentElement, pointers); 
+
+      current_element->total_time_run += 1;
+      time_run += 1;
+    }
+    
+    time_elapsed++;
+
+    // Add any processes which arrived
+    add_processes_to_ready_queue(&not_processed, &list, time_elapsed);
+      
+    if (!TAILQ_EMPTY(&list)) {
+      current_element = TAILQ_FIRST(&list);
+      // Remove a finished process
+      if (current_element->total_time_run == current_element->burst_time) {
+        total_waiting_time += time_elapsed - current_element->arrival_time - current_element->burst_time;
+        // printf("Process %d finished executing, Time Elapsed: %d, Burst Time: %d, Arrival Time: %d, Calculated Waiting Time: %d\n", current_element->pid, time_elapsed, current_element->arrival_time,current_element->burst_time, time_elapsed - current_element->arrival_time - current_element->burst_time);
+        TAILQ_REMOVE(&list, current_element, pointers);
+        current_element = TAILQ_FIRST(&list);
+        time_run = 0;
+      } 
+      // Append a process which has finished its time slice to the back of the ready queue
+      else if (time_run == quantum_length) {
+          // Create a copy of the current element
+          struct process* new_element = (struct process*)malloc(sizeof(struct process));
+          *new_element = *current_element;
+
+          // Move the interrupted process to the end of the queue
+          TAILQ_REMOVE(&list, current_element, pointers);
+          TAILQ_INSERT_TAIL(&list, new_element, pointers);
+          
+          time_run = 0;  
+          // printf("Time slice finished, appending %u\n", current_element->pid);
+        }
+      } 
+      // printf("\n");
   }
-
-  // Testing
-  printf ("Total wait time: %ld\n", total_wait_time);
-  printf ("Total response time: %ld\n", total_response_time);
-
-
+  
   /* End of "Your code here" */
 
-  printf ("Average wait time: %.2f\n",
-	  total_wait_time / (double) ps.nprocesses);
-  printf ("Average response time: %.2f\n",
-	  total_response_time / (double) ps.nprocesses);
+  printf("Average waiting time: %.2f\n", (float)total_waiting_time / (float)size);
+  printf("Average response time: %.2f\n", (float)total_response_time / (float)size);
 
-  if (fflush (stdout) < 0 || ferror (stdout))
-    {
-      perror ("stdout");
-      return 1;
-    }
-
-  free (ps.process);
+  free(data);
   return 0;
 }

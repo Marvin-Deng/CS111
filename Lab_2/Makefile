@@ -1,4 +1,4 @@
-CFLAGS = -I. -std=gnu17 -Wpedantic -Wall -Wextra -O0 -g -pipe -fno-plt -fPIC
+CFLAGS = -std=gnu17 -Wpedantic -Wall -O0 -pipe -fno-plt -fPIC
 ifeq ($(shell uname -s),Darwin)
 	LDFLAGS =
 else
@@ -9,7 +9,6 @@ endif
 all: rr
 
 rr: rr.o
-rr.o: rr.c stdckdint.h
 
 .PHONY: clean
 clean:

@@ -1,7 +1,6 @@
 # You Spin Me Round Robin
 
-A linked list implementation of round robin process scheduling using for a given workload and quantum
-length written. Returns the average wait and response times.
+A linked list implementation of round robin process scheduler given a text file with processes quantum length. Returns the average wait and response times.
 
 ## Building
 
@@ -10,6 +9,8 @@ make
 ```
 
 ## Running
+
+processes.txt should have the number of processes in the first line followed by a list of processes in the form `pid arrival_time burst_time`
 
 ```shell
 ./rr processes.txt quantum
@@ -27,6 +28,3 @@ Average response time: 2.75
 ```shell
 make clean
 ```
-
-## Testing
-python -m unittest
