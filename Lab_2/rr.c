@@ -153,16 +153,14 @@ int compare_arrival_time(const void* a, const void* b) {
 
 void add_processes_to_ready_queue(struct process_list *not_processed, struct process_list *ready_queue, int time_elapsed) {
   if (!TAILQ_EMPTY(not_processed)) {
-      struct process *next_to_process = TAILQ_FIRST(not_processed);
-      while (next_to_process != NULL && next_to_process->arrival_time == time_elapsed) {
-          struct process *new_process = (struct process*)malloc(sizeof(struct process));
-          *new_process = *next_to_process;
-
-          TAILQ_REMOVE(not_processed, next_to_process, pointers);
-          TAILQ_INSERT_TAIL(ready_queue, new_process, pointers);
-          next_to_process = TAILQ_FIRST(not_processed);
-          // printf("Added %u to ready queue\n", new_process->pid);
-      }
+    struct process *next_to_process = TAILQ_FIRST(not_processed);
+    while (next_to_process != NULL && next_to_process->arrival_time == time_elapsed) {
+      struct process *new_process = (struct process*)malloc(sizeof(struct process));
+      *new_process = *next_to_process;
+      TAILQ_REMOVE(not_processed, next_to_process, pointers);
+      TAILQ_INSERT_TAIL(ready_queue, new_process, pointers);
+      next_to_process = TAILQ_FIRST(not_processed);
+    }
   }
 }
 
@@ -197,7 +195,6 @@ int main(int argc, char *argv[])
   // Append processes to the not processed queue
   for (int i = 0; i < size; i++) {
     TAILQ_INSERT_TAIL(&not_processed, &data[i], pointers);
-    printf("PID: %u, Arrival Time: %u, Index: %u\n", data[i].pid, data[i].arrival_time, data[i].index);
   }
 
   struct process* current_element;
@@ -209,19 +206,15 @@ int main(int argc, char *argv[])
 
   // Continue until processes have finished running
   while (!TAILQ_EMPTY(&not_processed) || !TAILQ_EMPTY(&list)) {
-    // printf("Time Elapsed: %u\n", time_elapsed);
 
     // If possible, run a ready process
     if (!TAILQ_EMPTY(&list)) {
       current_element = TAILQ_FIRST(&list);
-      // printf("Running process %u\n", current_element->pid);
       
       // Calculate response time
       if (current_element->total_time_run == 0) {
         total_response_time += time_elapsed - current_element->arrival_time;
-        // printf("Response time of %u: %u\n", current_element->pid, time_elapsed - current_element->arrival_time);
       }
-
       current_element->total_time_run += 1;
       time_run += 1;
     }
@@ -236,7 +229,6 @@ int main(int argc, char *argv[])
       // Remove a finished process
       if (current_element->total_time_run == current_element->burst_time) {
         total_waiting_time += time_elapsed - current_element->arrival_time - current_element->burst_time;
-        // printf("Process %d finished executing, Time Elapsed: %d, Burst Time: %d, Arrival Time: %d, Calculated Waiting Time: %d\n", current_element->pid, time_elapsed, current_element->arrival_time,current_element->burst_time, time_elapsed - current_element->arrival_time - current_element->burst_time);
         TAILQ_REMOVE(&list, current_element, pointers);
         current_element = TAILQ_FIRST(&list);
         time_run = 0;
@@ -250,15 +242,10 @@ int main(int argc, char *argv[])
           // Move the interrupted process to the end of the queue
           TAILQ_REMOVE(&list, current_element, pointers);
           TAILQ_INSERT_TAIL(&list, new_element, pointers);
-          
           time_run = 0;  
-          // printf("Time slice finished, appending %u\n", current_element->pid);
         }
       } 
-      // printf("\n");
   }
-  
-  /* End of "Your code here" */
 
   printf("Average waiting time: %.2f\n", (float)total_waiting_time / (float)size);
   printf("Average response time: %.2f\n", (float)total_response_time / (float)size);
