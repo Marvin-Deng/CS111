@@ -21,6 +21,7 @@ struct hash_table_entry {
 
 struct hash_table_v1 {
 	struct hash_table_entry entries[HASH_TABLE_CAPACITY];
+	pthread_mutex_t mutex; // Create a mutex
 };
 
 struct hash_table_v1 *hash_table_v1_create()
@@ -31,6 +32,8 @@ struct hash_table_v1 *hash_table_v1_create()
 		struct hash_table_entry *entry = &hash_table->entries[i];
 		SLIST_INIT(&entry->list_head);
 	}
+	// Initialize the mutex
+    pthread_mutex_init(&hash_table->mutex, NULL);
 	return hash_table;
 }
 
@@ -72,6 +75,13 @@ void hash_table_v1_add_entry(struct hash_table_v1 *hash_table,
                              const char *key,
                              uint32_t value)
 {
+	// Lock the mutex
+	int lock_result = pthread_mutex_lock(&hash_table->mutex);
+	if (lock_result != 0) {
+        fprintf(stderr, "Error: Failed to lock mutex with error code %d.\n", lock_result);
+        return -2; 
+    }
+
 	struct hash_table_entry *hash_table_entry = get_hash_table_entry(hash_table, key);
 	struct list_head *list_head = &hash_table_entry->list_head;
 	struct list_entry *list_entry = get_list_entry(hash_table, key, list_head);
@@ -86,6 +96,13 @@ void hash_table_v1_add_entry(struct hash_table_v1 *hash_table,
 	list_entry->key = key;
 	list_entry->value = value;
 	SLIST_INSERT_HEAD(list_head, list_entry, pointers);
+
+	// Unlock the mutex 
+	unlock_result = pthread_mutex_unlock(&hash_table->mutex);
+	if (unlock_result != 0) {
+        fprintf(stderr, "Error: Failed to unlock mutex with error code %d.\n", unlock_result);
+        return -2; 
+    }
 }
 
 uint32_t hash_table_v1_get_value(struct hash_table_v1 *hash_table,
@@ -110,5 +127,12 @@ void hash_table_v1_destroy(struct hash_table_v1 *hash_table)
 			free(list_entry);
 		}
 	}
+	// Destroy the mutex
+    int destroy_result = pthread_mutex_destroy(&hash_table->mutex);
+    if (destroy_result != 0) {
+        fprintf(stderr, "Error: Failed to destroy mutex with error code %d.\n", destroy_result);
+        free(hash_table); // Attempt to free the has table
+        return -2; 
+    }
 	free(hash_table);
 }

@@ -3,11 +3,10 @@ A thread safe implementation of a hash table using two different locking techniq
 
 ## Building
 ```shell
-make
+makeS
 ```
 
 ## Running
-
 ```shell
 ./hash-table-tester -t <number of threads> -s <hash table entries to add per thread>
 ```
