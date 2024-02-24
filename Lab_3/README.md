@@ -54,3 +54,9 @@ make clean
 ```shell
 python -m unittest 
 ```
+
+## Number of cores
+
+```shell
+nproc
+```

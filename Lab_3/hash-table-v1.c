@@ -33,7 +33,12 @@ struct hash_table_v1 *hash_table_v1_create()
 		SLIST_INIT(&entry->list_head);
 	}
 	// Initialize the mutex
-    pthread_mutex_init(&hash_table->mutex, NULL);
+    int init_result = pthread_mutex_init(&hash_table->mutex, NULL);
+	if (init_result != 0) {
+		pthread_mutex_destroy(&hash_table->mutex);
+		exit(1);
+	}
+		
 	return hash_table;
 }
 
@@ -78,8 +83,8 @@ void hash_table_v1_add_entry(struct hash_table_v1 *hash_table,
 	// Lock the mutex
 	int lock_result = pthread_mutex_lock(&hash_table->mutex);
 	if (lock_result != 0) {
-        fprintf(stderr, "Error: Failed to lock mutex with error code %d.\n", lock_result);
-        return -2; 
+		pthread_mutex_destroy(&hash_table->mutex);
+        exit(1);
     }
 
 	struct hash_table_entry *hash_table_entry = get_hash_table_entry(hash_table, key);
@@ -98,10 +103,10 @@ void hash_table_v1_add_entry(struct hash_table_v1 *hash_table,
 	SLIST_INSERT_HEAD(list_head, list_entry, pointers);
 
 	// Unlock the mutex 
-	unlock_result = pthread_mutex_unlock(&hash_table->mutex);
+	int unlock_result = pthread_mutex_unlock(&hash_table->mutex);
 	if (unlock_result != 0) {
-        fprintf(stderr, "Error: Failed to unlock mutex with error code %d.\n", unlock_result);
-        return -2; 
+		pthread_mutex_destroy(&hash_table->mutex);
+        exit(1);
     }
 }
 
@@ -130,9 +135,7 @@ void hash_table_v1_destroy(struct hash_table_v1 *hash_table)
 	// Destroy the mutex
     int destroy_result = pthread_mutex_destroy(&hash_table->mutex);
     if (destroy_result != 0) {
-        fprintf(stderr, "Error: Failed to destroy mutex with error code %d.\n", destroy_result);
-        free(hash_table); // Attempt to free the has table
-        return -2; 
+        exit(1);
     }
 	free(hash_table);
 }
