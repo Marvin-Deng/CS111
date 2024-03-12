@@ -25,6 +25,15 @@ pip install -r requirements.txt
 
 ## Running
 
+1. Running the app
 ```shell
 streamlit run app.py
+```
+
+## Embeddings
+- Embeddings are stored in the embeddings folder
+
+1. Generate new embeddings
+```shell
+python src/generate_embeddings.py
 ```

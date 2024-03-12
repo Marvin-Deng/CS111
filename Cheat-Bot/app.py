@@ -22,7 +22,7 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 def get_conversational_chain():
 
     prompt_template = """
-    Answer the question as detailed as possible from the provided context, make sure to provide all the details. Don't provide the wrong answer\n\n
+    Include the title of the document where the answer was found. Answer the question as detailed as possible from the provided context, make sure to provide all the details. Don't provide the wrong answer.\n\n
     Context:\n {context}?\n
     Question: \n{question}\n
 
@@ -30,21 +30,24 @@ def get_conversational_chain():
     """
 
     model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
-    prompt = PromptTemplate(template = prompt_template, input_variables = ["context", "question"])
+    prompt = PromptTemplate(template=prompt_template,
+                            input_variables=["context", "question"])
     chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
 
     return chain
 
 
 def user_input(user_question):
-    embeddings = GoogleGenerativeAIEmbeddings(model = "models/embedding-001")
-    
-    new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+
+    new_db = FAISS.load_local(
+        "embeddings/notes_faiss_index", embeddings, allow_dangerous_deserialization=True)
     docs = new_db.similarity_search(user_question)
 
     chain = get_conversational_chain()
-    
-    response = chain( {"input_documents": docs, "question": user_question}, return_only_outputs=True)
+
+    response = chain(
+        {"input_documents": docs, "question": user_question}, return_only_outputs=True)
     st.write(response["output_text"])
 
 
@@ -59,7 +62,8 @@ def main():
 
     with st.sidebar:
         st.title("Menu:")
-        pdf_docs = st.file_uploader("Upload additional notes as PDF Files", accept_multiple_files=True)
+        pdf_docs = st.file_uploader(
+            "Upload additional notes as PDF Files", accept_multiple_files=True)
         if st.button("Submit & Process"):
             with st.spinner("Processing..."):
                 raw_text = get_pdf_text(pdf_docs)
