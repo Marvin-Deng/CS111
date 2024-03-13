@@ -198,22 +198,22 @@ void write_superblock(int fd) {
 
 	// TODO It's all yours
 	// TODO finish the superblock number setting
-	superblock.s_inodes_count = -1;
-	superblock.s_blocks_count = -1;
+	superblock.s_inodes_count = NUM_INODES;
+	superblock.s_blocks_count = NUM_BLOCKS;
 	superblock.s_r_blocks_count = 0;
-	superblock.s_free_blocks_count = -1;
-	superblock.s_free_inodes_count = -1;
-	superblock.s_first_data_block = -1; /* First Data Block */
-	superblock.s_log_block_size = 0;					/* 1024 */
-	superblock.s_log_frag_size = 0;						/* 1024 */
-	superblock.s_blocks_per_group = -1;
-	superblock.s_frags_per_group = -1;
-	superblock.s_inodes_per_group = -1;
+	superblock.s_free_blocks_count = NUM_FREE_BLOCKS;
+	superblock.s_free_inodes_count = NUM_FREE_INODES;
+	superblock.s_first_data_block = 1; /* First Data Block */
+	superblock.s_log_block_size = BLOCK_SIZE;		/* 1024 */
+	superblock.s_log_frag_size = BLOCK_SIZE;		/* 1024 */
+	superblock.s_blocks_per_group = NUM_BLOCKS;
+	superblock.s_frags_per_group = NUM_BLOCKS;
+	superblock.s_inodes_per_group = NUM_INODES;
 	superblock.s_mtime = 0;				/* Mount time */
 	superblock.s_wtime = current_time;	/* Write time */
 	superblock.s_mnt_count         = 0; /* Number of times mounted so far */
 	superblock.s_max_mnt_count     = 0; /* Make this unlimited */
-	superblock.s_magic = -1; /* ext2 Signature */
+	superblock.s_magic = EXT2_SUPER_MAGIC; /* ext2 Signature */
 	superblock.s_state             = 0; /* File system is clean */
 	superblock.s_errors            = 0; /* Ignore the error (continue on) */
 	superblock.s_minor_rev_level   = 0; /* Leave this as 0 */
@@ -261,12 +261,12 @@ void write_block_group_descriptor_table(int fd) {
 
 	// TODO It's all yours
 	// TODO finish the block group descriptor number setting
-	block_group_descriptor.bg_block_bitmap = -1;
-	block_group_descriptor.bg_inode_bitmap = -1;
-	block_group_descriptor.bg_inode_table = -1;
-	block_group_descriptor.bg_free_blocks_count = -1;
-	block_group_descriptor.bg_free_inodes_count = -1;
-	block_group_descriptor.bg_used_dirs_count = -1;
+	block_group_descriptor.bg_block_bitmap = BLOCK_BITMAP_BLOCKNO;
+	block_group_descriptor.bg_inode_bitmap = INODE_BITMAP_BLOCKNO;
+	block_group_descriptor.bg_inode_table = INODE_TABLE_BLOCKNO;
+	block_group_descriptor.bg_free_blocks_count = NUM_FREE_BLOCKS;
+	block_group_descriptor.bg_free_inodes_count = NUM_FREE_INODES;
+	block_group_descriptor.bg_used_dirs_count = 2;
 
 	ssize_t size = sizeof(block_group_descriptor);
 	if (write(fd, &block_group_descriptor, size) != size) {
@@ -352,7 +352,33 @@ void write_inode_table(int fd) {
 
 void write_root_dir_block(int fd)
 {
-	// TODO It's all yours
+	off_t off = BLOCK_OFFSET(ROOT_DIR_BLOCKNO);
+	off = lseek(fd, off, SEEK_SET);
+	if (off == -1) {
+		errno_exit("lseek");
+	}
+
+	ssize_t bytes_remaining = BLOCK_SIZE;
+
+	struct ext2_dir_entry current_entry = {0};
+	dir_entry_set(current_entry, LOST_AND_FOUND_INO, ".");
+	dir_entry_write(current_entry, fd);
+
+	bytes_remaining -= current_entry.rec_len;
+
+	struct ext2_dir_entry parent_entry = {0};
+	dir_entry_set(parent_entry, EXT2_ROOT_INO, "..");
+	dir_entry_write(parent_entry, fd);
+
+	bytes_remaining -= parent_entry.rec_len;
+
+	struct ext2_dir_entry hello_symlink_entry  = {0};
+	dir_entry_set(hello_symlink_entry , HELLO_INO, "hello");
+	dir_entry_write(hello_symlink_entry, fd);
+
+	bytes_remaining -= hello_symlink_entry.rec_len;
+
+
 }
 
 void write_lost_and_found_dir_block(int fd) {
@@ -383,7 +409,18 @@ void write_lost_and_found_dir_block(int fd) {
 
 void write_hello_world_file_block(int fd)
 {
-	// TODO It's all yours
+	off_t off = BLOCK_OFFSET(HELLO_WORLD_FILE_BLOCKNO);
+    off = lseek(fd, off, SEEK_SET);
+    if (off == -1) {
+        errno_exit("lseek");
+    }
+
+    const char* message = "Hello, World!\n";
+    ssize_t message_len = strlen(message);
+
+    if (write(fd, message, message_len) != message_len) {
+        errno_exit("write");
+    }
 }
 
 int main(int argc, char *argv[]) {
