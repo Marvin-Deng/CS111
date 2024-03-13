@@ -15,16 +15,20 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 TOPICS = ['All', 'OS', 'Memory', 'Processes', 'Threads']
 
 
-def get_conversational_chain():
-    prompt_template = """
-    Answer the question. 
+def get_conversational_chain(question_type):
+    if question_type == "Single Select":
+        question_type_prompt = "This question has only one correct answer."
+    else:
+        question_type_prompt = "This question may have multiple correct answers. Provide answers in an ordered list"
+
+    prompt_template = f"""
+    Read the instructions in the question carefully and correctly answer the question. 
+    {question_type_prompt}
     Some questions only have one answer and others may have multiple. 
-    Read the instructions in the question carefully. 
     Don't provide the wrong answer. 
-    Only pick answers that correctly answer the question.
-    Format the answer in a neat format\n\n
-    Context:\n {context}?\n
-    Question: \n{question}\n
+    Only pick answers that correctly answer the question.\n\n
+    Context:\n{{context}}?\n
+    Question: \n{{question}}\n
 
     Answer:
     """
@@ -50,9 +54,9 @@ def load_faiss_index_by_topic(topic: str):
     return faiss_index
 
 
-def user_input(user_question, topic):
+def user_input(user_question, topic, question_type):
     new_db = load_faiss_index_by_topic(topic)
-
+    
     if new_db is None:
         st.write(
             "No relevant database found. Please try a different topic or upload more documents.")
@@ -61,7 +65,7 @@ def user_input(user_question, topic):
     docs = new_db.similarity_search(user_question)
 
     try:
-        chain = get_conversational_chain()
+        chain = get_conversational_chain(question_type)
         response = chain(
             {"input_documents": docs, "question": user_question}, return_only_outputs=True)
         st.write(response["output_text"])
@@ -74,11 +78,12 @@ def main():
     st.header("CS-111 Chat Bot using Gemini")
 
     topic = st.sidebar.selectbox('Choose a topic', TOPICS)
+    question_type = st.sidebar.radio("Question Type", ["Single Select", "Multi-Select"])
 
     user_question = st.text_input("Ask a question about CS 111")
 
     if user_question:
-        user_input(user_question, topic)
+        user_input(user_question, topic, question_type)
 
 if __name__ == "__main__":
     main()
