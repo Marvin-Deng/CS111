@@ -13,7 +13,7 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 NOTES_DIRECTORY = "Notes"
 SUBFOLDERS = ["Lecture", "Readings", "Textbook"]
-TOPICS = ['OS', 'Memory', 'Processes', 'Threads']
+TOPICS = ['OS', 'Memory', 'Processes', 'Threads', "File Systems", "Devices"]
 
 
 def get_pdf_text(pdf_docs) -> str:

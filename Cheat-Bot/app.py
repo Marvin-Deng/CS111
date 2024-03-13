@@ -12,7 +12,7 @@ load_dotenv()
 
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-TOPICS = ['All', 'OS', 'Memory', 'Processes', 'Threads']
+TOPICS = ['OS', 'Memory', 'Processes', 'Threads', "File Systems", "Devices"]
 
 
 def get_conversational_chain(question_type):
