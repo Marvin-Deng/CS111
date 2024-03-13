@@ -11,17 +11,17 @@ make
 
 Run the executable to create cs111 -base.img
 ```shell
-./ ext2 - create
+./ext2-create
 ```
 
 Dumps the filesystem information to help debug
 ```shell
-dumpe2fs cs111 -base.img
+dumpe2fs cs111-base.img
 ```
 
 Check that the filesystem is correct
 ```shell
-fsck.ext2 cs111 -base.img
+fsck.ext2 cs111-base.img
 ```
 
 Create a directory to mnt the filesystem to
@@ -31,7 +31,7 @@ mkdir mnt
 
 Mount the filesystem 
 ```shell
-sudo mount -o loop cs111 -base.img mnt
+sudo mount -o loop cs111-base.img mnt
 ```
 
 Unmount the filesystem when you 're done
