@@ -12,7 +12,8 @@ load_dotenv()
 
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-TOPICS = ['OS', 'Memory', 'Processes', 'Threads', "File Systems", "Devices"]
+TOPICS = ["All"]
+TOPICS.extend(os.listdir(r"Notes\Textbook"))
 
 
 def get_conversational_chain(question_type):

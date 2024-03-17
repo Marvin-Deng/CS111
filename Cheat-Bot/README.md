@@ -1,5 +1,5 @@
 # CS-111 Final Chat Bot
-CS 111 final is online :)
+The CS 111 final is online, so I made this langchain app which acts as a search engine for the textbook, required readings, and my lecture notes.
 
 ## Setup
 
@@ -31,7 +31,7 @@ streamlit run app.py
 ```
 
 ## Embeddings
-- Embeddings are stored in the embeddings folder
+- Embeddings are stored in the embeddings folder. You can add or remove notes for any topic, then regenerate the embeddings to see the changes in the app.
 
 To generate new embeddings
 ```shell
