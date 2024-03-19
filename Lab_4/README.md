@@ -34,17 +34,17 @@ Mount the filesystem
 sudo mount -o loop cs111-base.img mnt
 ```
 
-Unmount the filesystem when you 're done
+## Cleaning up
+
+Unmount the filesystem when done
 ```shell
 sudo umount mnt
 ```
 
-Delete the directory used for mounting when you 're done
+Delete the directory used for mounting when done
 ```shell
 rmdir mnt
 ```
-
-## Cleaning up
 
 ```shell
 make clean
