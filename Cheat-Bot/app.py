@@ -13,7 +13,7 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 TOPICS = ["All"]
-TOPICS.extend(os.listdir(r"Notes\Textbook"))
+TOPICS.extend(os.listdir(r"Notes\Lecture"))
 
 
 def get_conversational_chain(question_type):
