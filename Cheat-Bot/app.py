@@ -77,9 +77,9 @@ def user_input(user_question, topic, question_type):
 def main():
     st.set_page_config("CS-111 Final Cheat Bot")
     st.header("CS-111 Chat Bot using Gemini")
-
-    topic = st.sidebar.selectbox('Choose a topic', TOPICS)
+    
     question_type = st.sidebar.radio("Question Type", ["Single Select", "Multi-Select"])
+    topic = st.sidebar.selectbox('Choose a topic', TOPICS)
 
     user_question = st.text_input("Ask a question about CS 111")
 
